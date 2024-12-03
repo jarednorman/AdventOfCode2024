@@ -34,10 +34,34 @@ class Report
   end
 end
 
+class ProblemDampener
+  def initialize(levels)
+    @levels = levels
+  end
+
+  def safe?
+    return true if Report.new(@levels).safe?
+
+    variations.any? { |variation|
+      Report.new(variation).safe?
+    }
+  end
+
+  private
+
+  def variations
+    (0...@levels.length).lazy.map { |index|
+      @levels.dup.tap { |variation|
+        variation.delete_at(index)
+      }
+    }
+  end
+end
+
 reports = input.lines.map(&:strip).map { |line|
   levels = line.split.map(&:to_i)
 
-  Report.new(levels)
+  ProblemDampener.new(levels)
 }
 
 puts reports.count(&:safe?)
