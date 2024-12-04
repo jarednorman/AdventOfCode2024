@@ -4,52 +4,32 @@ require "debug"
 
 input = File.read(File.basename(__FILE__, ".rb") + ".txt")
 
+class Pattern
+  def initialize(letter_positions)
+    @letter_positions = letter_positions
+  end
+
+  attr_reader :letter_positions
+end
+
 class WordSearch
   def initialize(text)
     @word_search = text.lines.map { _1.strip.split("") }.transpose
   end
 
-  def count_word(word)
-    letters = word.split("")
-
-    @word_search.each_with_index.sum do |column, x|
-      column.each_with_index.sum do |char, y|
-        next 0 unless char == letters.first
-
-        [
-          [1, 0],
-          [1, 1],
-          [0, 1],
-          [-1, 1],
-          [-1, 0],
-          [-1, -1],
-          [0, -1],
-          [1, -1]
-        ].count { |(dx, dy)|
-          word_in_direction?(letters, x, y, dx, dy)
-        }
-      end
-    end
-  end
-
-  def count_x_mases
-    @word_search.each_with_index.sum do |column, x|
-      column.each_with_index.count do |char, y|
-        next false unless char == "A"
-
-        (self[x - 1, y - 1] == "M" && self[x + 1, y + 1] == "S" || self[x - 1, y - 1] == "S" && self[x + 1, y + 1] == "M") &&
-          (self[x + 1, y - 1] == "M" && self[x - 1, y + 1] == "S" || self[x + 1, y - 1] == "S" && self[x - 1, y + 1] == "M")
+  def count(patterns)
+    patterns.sum do |pattern|
+      @word_search.each_with_index.sum do |column, x|
+        column.each_with_index.count do |char, y|
+          pattern.letter_positions.all? { |(c, dx, dy)|
+            self[x + dx, y + dy] == c
+          }
+        end
       end
     end
   end
 
   private
-
-  def word_in_direction?(letters, x, y, dx, dy)
-    letters.each_with_index.all? { |letter, index|
-      self[x + dx * index, y + dy * index] == letter
-    }
-  end
 
   def [](x, y)
     return if x.negative? || y.negative?
@@ -58,4 +38,56 @@ class WordSearch
   end
 end
 
-puts WordSearch.new(input).count_x_mases
+part_one = WordSearch.new(input).count([
+  [1, 0],
+  [1, 1],
+  [0, 1],
+  [-1, 1],
+  [-1, 0],
+  [-1, -1],
+  [0, -1],
+  [1, -1]
+].map { |(dx, dy)|
+  Pattern.new(
+    "XMAS".chars.each_with_index.map { |c, i|
+      [c, dx * i, dy * i]
+    }
+  )
+})
+
+part_two = WordSearch.new(input).count([
+  Pattern.new([
+    ["A", 0, 0],
+    ["M", -1, -1],
+    ["S", 1, 1],
+    ["M", 1, -1],
+    ["S", -1, 1]
+  ]),
+  Pattern.new([
+    ["A", 0, 0],
+    ["M", -1, 1],
+    ["S", 1, -1],
+    ["M", 1, 1],
+    ["S", -1, -1]
+  ]),
+  Pattern.new([
+    ["A", 0, 0],
+    ["M", -1, -1],
+    ["S", 1, 1],
+    ["M", -1, 1],
+    ["S", 1, -1]
+  ]),
+  Pattern.new([
+    ["A", 0, 0],
+    ["M", 1, -1],
+    ["S", -1, 1],
+    ["M", 1, 1],
+    ["S", -1, -1]
+  ]),
+])
+
+raise "#{part_one} should equal 2543" unless part_one == 2543
+raise "#{part_two} should equal 1930" unless part_two == 1930
+
+puts "Part One: #{part_one}"
+puts "Part Two: #{part_two}"
