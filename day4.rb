@@ -32,6 +32,17 @@ class WordSearch
     end
   end
 
+  def count_x_mases
+    @word_search.each_with_index.sum do |column, x|
+      column.each_with_index.count do |char, y|
+        next false unless char == "A"
+
+        (self[x - 1, y - 1] == "M" && self[x + 1, y + 1] == "S" || self[x - 1, y - 1] == "S" && self[x + 1, y + 1] == "M") &&
+          (self[x + 1, y - 1] == "M" && self[x - 1, y + 1] == "S" || self[x + 1, y - 1] == "S" && self[x - 1, y + 1] == "M")
+      end
+    end
+  end
+
   private
 
   def word_in_direction?(letters, x, y, dx, dy)
@@ -47,4 +58,4 @@ class WordSearch
   end
 end
 
-puts WordSearch.new(input).count_word("XMAS")
+puts WordSearch.new(input).count_x_mases
