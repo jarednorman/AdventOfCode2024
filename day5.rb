@@ -2,6 +2,10 @@
 
 require "debug"
 
+def `(s)
+  puts s
+end
+
 module Hacks
   refine Integer do
     def |(other)
@@ -17,24 +21,37 @@ module Hacks
 
   refine Array do
     def %(other)
-      self[length / 2]
+      case other
+      when "middle"
+        self[length / 2]
+      else
+        filter! { other.call(_1) }
+      end
     end
 
     def **(other)
       index other
     end
 
-    def >(other)
-      map { other.call(_1) }
+    def <(other)
+      delete(other)
     end
 
-    def >=(other)
-      sum { other.call(_1) }
+    def self.[](operator, array_method)
+      define_method(operator) do |other = nil, &block|
+        send(array_method) {
+          block ? block.call(_1) : other.call(_1)
+        }
+      end
     end
 
-    def <=(other)
-      all? { other.call(_1) }
-    end
+    self[:>=, :sum]
+    self[:>, :map]
+    self[:<=, :all?]
+    self[:=~, :partition]
+    self[:/, :select]
+    self[:!~, :find]
+    self[:>>, :none?]
   end
 end
 
@@ -64,6 +81,26 @@ class Update
     @pages = pages
   end
 
+  def <<(rules)
+    applicable_rules = rules / ->(rule) { (@pages**+rule) && (@pages**-rule) }
+
+    old_pages = @pages.dup
+    new_pages = []
+
+    until old_pages.empty?
+      next_page = old_pages !~ ->(page) {
+        applicable_rules >> ->(rule) { page == -rule }
+      }
+
+      applicable_rules % ->(rule) { next_page != +rule }
+
+      old_pages < next_page
+      new_pages << next_page
+    end
+
+    Update[*new_pages]
+  end
+
   def ~
     @pages % "middle"
   end
@@ -80,11 +117,15 @@ rule_data, update_data = *-input
 rules = rule_data > ->(r) { eval r }
 updates = update_data > ->(u) { eval "Update[#{u}]" }
 
-result = updates >= ->(update) {
-  (rules <= ->(rule) { update === rule }) ?
-    ~update
-  :
-    0
+valid_updates, invalid_updates = updates =~ ->(update) {
+  rules <= ->(rule) { update === rule }
 }
 
-puts result
+part_one = valid_updates.>=(&:~@)
+
+part_two = (invalid_updates > ->(update) {
+  update << rules
+}).>=(&:~@)
+
+`Part One: #{part_one}`
+`Part Two: #{part_two}`
