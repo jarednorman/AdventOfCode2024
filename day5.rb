@@ -23,6 +23,18 @@ module Hacks
     def **(other)
       index other
     end
+
+    def >(other)
+      map { other.call(_1) }
+    end
+
+    def >=(other)
+      sum { other.call(_1) }
+    end
+
+    def <=(other)
+      all? { other.call(_1) }
+    end
   end
 end
 
@@ -65,15 +77,14 @@ input = File.read(File.basename(__FILE__, ".rb") + ".txt")
 
 rule_data, update_data = *-input
 
-rules = rule_data.map { eval _1 }
-updates = update_data.map { eval "Update[#{_1}]" }
+rules = rule_data > ->(r) { eval r }
+updates = update_data > ->(u) { eval "Update[#{u}]" }
 
-result = updates.sum { |update|
-  if rules.all? { |rule| update === rule }
+result = updates >= ->(update) {
+  (rules <= ->(rule) { update === rule }) ?
     ~update
-  else
+  :
     0
-  end
 }
 
 puts result
