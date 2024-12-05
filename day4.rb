@@ -83,7 +83,7 @@ part_two = WordSearch.new(input).count([
     ["S", -1, 1],
     ["M", 1, 1],
     ["S", -1, -1]
-  ]),
+  ])
 ])
 
 raise "#{part_one} should equal 2543" unless part_one == 2543
