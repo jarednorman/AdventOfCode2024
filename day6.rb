@@ -5,9 +5,8 @@ require "debug"
 def method_missing(method_name, *args, &block)
   case method_name
   when :input
-    File.read(File.basename(__FILE__, ".rb") + ".txt")
+    @input ||= File.read(File.basename(__FILE__, ".rb") + ".txt").lines.map(&:strip).map(&:chars)
   when :newline
-    @obstacles ||= {}
     @x = 0
     @y = (@y || -1) + 1
   when :"."
@@ -17,69 +16,100 @@ def method_missing(method_name, *args, &block)
     @obstacles[[@x, @y]] = true
     @x += 1
   when :^
-    @guard_position = [@x, @y]
-    @guard_direction = :up
+    @guard_position = [@x, @y, :up]
     @x += 1
   when :guard_on_board?
-    @guard_position.first(2).all? { (0..129).cover? _1 }
+    @guard_position.first(2).all? { (0..(input.first.length - 1)).cover? _1 }
   when :step
     @guard_positions ||= Set.new
-    @guard_positions << @guard_position
 
-    case @guard_direction
+    if @guard_positions.include?(@guard_position)
+      @looping = true
+    else
+      @guard_positions << @guard_position
+    end
+
+    case @guard_position.last
     when :up
       new_position = [@guard_position.first, @guard_position[1] - 1]
-      if @obstacles[new_position]
-        @guard_direction = :right
+
+      @guard_position = if @obstacles[new_position]
+        [*@guard_position.first(2), :right]
       else
-        @guard_position = [*new_position, @guard_direction]
+        [*new_position, :up]
       end
     when :right
       new_position = [@guard_position.first + 1, @guard_position[1]]
-      if @obstacles[new_position]
-        @guard_direction = :down
+
+      @guard_position = if @obstacles[new_position]
+        [*@guard_position.first(2), :down]
       else
-        @guard_position = [*new_position, @guard_direction]
+        [*new_position, :right]
       end
     when :down
       new_position = [@guard_position.first, @guard_position[1] + 1]
-      if @obstacles[new_position]
-        @guard_direction = :left
+
+      @guard_position = if @obstacles[new_position]
+        [*@guard_position.first(2), :left]
       else
-        @guard_position = [*new_position, @guard_direction]
+        [*new_position, :down]
       end
     when :left
       new_position = [@guard_position.first - 1, @guard_position[1]]
-      if @obstacles[new_position]
-        @guard_direction = :up
+
+      @guard_position = if @obstacles[new_position]
+        [*@guard_position.first(2), :up]
       else
-        @guard_position = [*new_position, @guard_direction]
+        [*new_position, :left]
       end
     end
-  when :guard_position_count
-    @guard_positions.map { _1.first(2) }.to_set.size
-  when :part_one
-    input.lines.map(&:strip).each { |line|
+  when :guard_positions
+    @guard_positions.map { _1.first(2) }.to_set
+  when :guard_positions_count
+    guard_positions.size
+  when :reset_board
+    @obstacles = {}
+    @guard_positions = nil
+    @looping = false
+    @y = nil
+
+    input.each { |line|
       newline
 
-      line.chars.each { |char|
-        send(char)
-      }
+      line.each { send _1 }
     }
+  when :looping?
+    @looping
+  when :part_one
+    reset_board
 
-    while guard_on_board?
-      step
-    end
+    step while guard_on_board?
 
-    guard_position_count
+    guard_positions_count
   when :part_two
+    original_guard_positions = @guard_positions.map { _1.first(2) }.to_set
+
+    reset_board
+
+    (original_guard_positions - [@guard_position.first(2)]).count { |(x, y)|
+      reset_board
+
+      @obstacles[[x, y]] = true
+
+      loop do
+        step
+
+        if !guard_on_board?
+          break false
+        elsif looping?
+          break true
+        end
+      end
+    }
   else
     super
   end
 end
 
-result = part_one
-raise "Part one changed to #{result}" unless result == 4656
-puts result
-
-puts part_two
+puts "Part One: #{part_one}"
+puts "Part Two: #{part_two}"
