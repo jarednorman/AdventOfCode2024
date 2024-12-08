@@ -7,8 +7,9 @@ input = File.readlines(File.basename(__FILE__, ".rb") + ".txt", chomp: true)
 class CalibrationCalculator
   include Enumerable
 
-  def initialize(calibration_equation)
+  def initialize(calibration_equation, pipe: false)
     @calibration_equation = calibration_equation
+    @pipe = pipe
   end
 
   def each(&block)
@@ -28,8 +29,13 @@ class CalibrationCalculator
 
     [
       possible_results(current_value + next_value, new_remaining_values),
-      possible_results(current_value * next_value, new_remaining_values)
-    ].flatten
+      possible_results(current_value * next_value, new_remaining_values),
+      @pipe ? possible_results(pipe(current_value, next_value), new_remaining_values) : nil
+    ].compact.flatten
+  end
+
+  def pipe(a, b)
+    (a.to_s + b.to_s).to_i
   end
 end
 
@@ -41,5 +47,17 @@ part_one = input.map { |line|
     possible_result == test_value
   }
 }.sum(&:first)
-
+raise "Part One changed: #{part_one} should equal 2299996598890" unless part_one == 2299996598890
 puts part_one
+
+part_two = input.map { |line|
+  test_value, calibration_equation = line.split ": "
+  [test_value.to_i, calibration_equation.split(" ").map(&:to_i)]
+}.select { |(test_value, calibration_equation)|
+  CalibrationCalculator.new(calibration_equation, pipe: true).any? { |possible_result|
+    possible_result == test_value
+  }
+}.sum(&:first)
+
+raise "Part Two changed: #{part_two} should equal 362646859298554" unless part_one == 362646859298554
+puts part_two
