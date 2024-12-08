@@ -47,6 +47,31 @@ antennas.each do |_, antennas|
   end
 end
 
+puts "Part One: #{antinodes.length}"
+
+antennas.each do |_, antennas|
+  antennas.combination(2).each do |(p1, p2)|
+    antinodes << p1
+    antinodes << p2
+
+    delta = p1 - p2
+
+    antinode = p1 + delta
+    until !bounds.cover?(antinode.x) || !bounds.cover?(antinode.y)
+      antinodes << antinode
+
+      antinode += delta
+    end
+
+    antinode = p2 - delta
+    until !bounds.cover?(antinode.x) || !bounds.cover?(antinode.y)
+      antinodes << antinode
+
+      antinode -= delta
+    end
+  end
+end
+
 antennas_by_position = antennas.flat_map { |frequency, antennas|
   antennas.map { |p| [p, frequency] }
 }.to_h
@@ -61,4 +86,4 @@ antennas_by_position = antennas.flat_map { |frequency, antennas|
 #   end.join)
 # end
 
-puts "Part One: #{antinodes.length}"
+puts "Part Two: #{antinodes.length}"
