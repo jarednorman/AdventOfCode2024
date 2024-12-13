@@ -29,7 +29,7 @@ input = File.readlines(File.basename(__FILE__, ".rb") + ".txt", chomp: true).map
 
 map = Matrix[*input]
 path_map = Matrix.build(map.row_count, map.column_count) { |x, y|
-  (map[x, y] == 9) ? 1 : nil
+  (map[x, y] == 9) ? Set.new([[x, y]]) : nil
 }
 
 8.downto(0).each do |n|
@@ -39,18 +39,18 @@ path_map = Matrix.build(map.row_count, map.column_count) { |x, y|
       [x - 1, y],
       [x, y - 1],
       [x, y + 1]
-    ].sum { |(x2, y2)|
+    ].map { |(x2, y2)|
       if map[x2, y2] == c + 1
         path_map[x2, y2]
       else
-        0
+        Set.new
       end
-    }
+    }.inject(Set.new, :|)
   end
 end
 
 part_one = map.each_with_index.select { |c, x, y| c == 0 }.sum { |_, x, y|
-  path_map[x, y]
+  path_map[x, y].length
 }
 
 puts part_one
